@@ -61,10 +61,18 @@
 				C58245A32979EE48005D8559 /* Assets.xcassets */,
 				C58245A52979EE48005D8559 /* Main.storyboard */,
 				C58245A82979EE48005D8559 /* Feed.entitlements */,
-				C58245AE2979EE89005D8559 /* FeedItem.swift */,
-				C58245B02979EF1F005D8559 /* FeedLoader.swift */,
+				C58245B22979F051005D8559 /* FeedFeature */,
 			);
 			path = Feed;
+			sourceTree = "<group>";
+		};
+		C58245B22979F051005D8559 /* FeedFeature */ = {
+			isa = PBXGroup;
+			children = (
+				C58245B02979EF1F005D8559 /* FeedLoader.swift */,
+				C58245AE2979EE89005D8559 /* FeedItem.swift */,
+			);
+			path = FeedFeature;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
