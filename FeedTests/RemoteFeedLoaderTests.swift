@@ -11,8 +11,7 @@ import Feed
 class FeedTests: XCTestCase {
     
     func test_init_doesntFetchRequest() {
-        let url = URL(string: "https://google.com")!
-        let (client, _) = makeSUT(url: url)
+        let (client, _) = makeSUT()
         
         XCTAssertTrue(client.requestedURLs.isEmpty)
     }
@@ -35,7 +34,19 @@ class FeedTests: XCTestCase {
         XCTAssertEqual([url, url], client.requestedURLs)
     }
     
-    private func makeSUT(url: URL) -> (client: HTTPClientSpy, feedLoader: RemoteFeedLoader) {
+    func test_load_returnsErrorInCompletion() {
+        var returnedError: RemoteFeedLoader.Error?
+        let (client, sut) = makeSUT()
+        client.error = NSError(domain: "", code: 1)
+        
+        sut.load { error in
+            returnedError = error
+        }
+        
+        XCTAssertEqual(returnedError, .connectivity)
+    }
+    
+    private func makeSUT(url: URL = URL(string: "https://google.com")!) -> (client: HTTPClientSpy, feedLoader: RemoteFeedLoader) {
         let client = HTTPClientSpy()
         let sut = RemoteFeedLoader(client: client, url: url)
         return (client, sut)
@@ -43,8 +54,13 @@ class FeedTests: XCTestCase {
     
     private class HTTPClientSpy: HTTPClient {
         private(set) var requestedURLs: [URL] = []
+        public var error: Error?
         
-        func get(from url: URL) {
+        func get(from url: URL, completion: @escaping ((Error) -> Void)) {
+            if let error = error {
+                completion(error)
+            }
+            
             requestedURLs.append(url)
         }
     }
