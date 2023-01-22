@@ -10,7 +10,7 @@ import Feed
 
 class FeedTests: XCTestCase {
     
-    func test_doesnt_fetch_request() {
+    func test_init_doesntFetchRequest() {
         let url = URL(string: "https://google.com")!
         let (client, _) = makeSUT(url: url)
         
@@ -18,13 +18,25 @@ class FeedTests: XCTestCase {
         XCTAssertNotEqual(url, client.requestedURL)
     }
     
-    func test_load_request() {
+    func test_load_requestsDataFromURL() {
         let url = URL(string: "https://google.com")!
         let (client, sut) = makeSUT(url: url)
         sut.load()
         
         XCTAssertNotNil(client.requestedURL)
         XCTAssertEqual(url, client.requestedURL)
+    }
+    
+    func test_loadTwice_requestsDataFromURLTwice() {
+        let url = URL(string: "https://google.com")!
+        let (client, sut) = makeSUT(url: url)
+        
+        sut.load()
+        sut.load()
+        
+        XCTAssertNotNil(client.requestedURL)
+        XCTAssertEqual(url, client.requestedURL)
+        XCTAssertEqual([url, url], client.requestedURLs)
     }
     
     private func makeSUT(url: URL) -> (client: HTTPClientSpy, feedLoader: RemoteFeedLoader) {
@@ -34,10 +46,12 @@ class FeedTests: XCTestCase {
     }
     
     private class HTTPClientSpy: HTTPClient {
-        var requestedURL: URL?
+        private(set) var requestedURL: URL?
+        private(set) var requestedURLs: [URL] = []
         
         func get(from url: URL) {
             requestedURL = url
+            requestedURLs.append(url)
         }
     }
 }
