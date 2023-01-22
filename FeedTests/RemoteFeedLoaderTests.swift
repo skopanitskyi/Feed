@@ -14,8 +14,7 @@ class FeedTests: XCTestCase {
         let url = URL(string: "https://google.com")!
         let (client, _) = makeSUT(url: url)
         
-        XCTAssertNil(client.requestedURL)
-        XCTAssertNotEqual(url, client.requestedURL)
+        XCTAssertTrue(client.requestedURLs.isEmpty)
     }
     
     func test_load_requestsDataFromURL() {
@@ -23,8 +22,7 @@ class FeedTests: XCTestCase {
         let (client, sut) = makeSUT(url: url)
         sut.load()
         
-        XCTAssertNotNil(client.requestedURL)
-        XCTAssertEqual(url, client.requestedURL)
+        XCTAssertEqual([url], client.requestedURLs)
     }
     
     func test_loadTwice_requestsDataFromURLTwice() {
@@ -34,8 +32,6 @@ class FeedTests: XCTestCase {
         sut.load()
         sut.load()
         
-        XCTAssertNotNil(client.requestedURL)
-        XCTAssertEqual(url, client.requestedURL)
         XCTAssertEqual([url, url], client.requestedURLs)
     }
     
@@ -46,11 +42,9 @@ class FeedTests: XCTestCase {
     }
     
     private class HTTPClientSpy: HTTPClient {
-        private(set) var requestedURL: URL?
         private(set) var requestedURLs: [URL] = []
         
         func get(from url: URL) {
-            requestedURL = url
             requestedURLs.append(url)
         }
     }
