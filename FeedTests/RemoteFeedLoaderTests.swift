@@ -49,7 +49,8 @@ class FeedTests: XCTestCase {
         
         samples.enumerated().forEach { index, code in
             expext(sut, withResponse: .failure(.invalidData)) {
-                client.complete(withStatusCode: code, at: index)
+                let json = createItemsJsonData([])
+                client.complete(withStatusCode: code, data: json, at: index)
             }
         }
     }
@@ -65,7 +66,7 @@ class FeedTests: XCTestCase {
     
     func test_load_returnsEmptyFeedItemsListOnStatusCode200AndEmptyJSON() {
         let (client, sut) = makeSUT()
-        let data = Data("{ \"items\": [] } ".utf8)
+        let data = createItemsJsonData([])
         
         expext(sut, withResponse: .success([])) {
             client.complete(withStatusCode: 200, data: data)
@@ -75,53 +76,29 @@ class FeedTests: XCTestCase {
     func test_load_returnsFeedItemsListOnStatusCode200() {
         let (client, sut) = makeSUT()
         
-        let item1 = FeedItem(
+        let item1 = getItem(
             uuid: UUID(),
-            description: nil,
-            location: nil,
             imageURL: URL(string: "https://google.com")!)
         
-        let item1Dictionary = ["uuid": item1.uuid.uuidString,
-                               "image": item1.imageURL.absoluteString]
-        
-        let item2 = FeedItem(
+        let item2 = getItem(
             uuid: UUID(),
             description: "test1",
             location: "test2",
             imageURL: URL(string: "https://google.com")!)
         
-        let item2Dictionary = ["uuid": item2.uuid.uuidString,
-                               "description": item2.description,
-                               "location": item2.location,
-                               "image": item2.imageURL.absoluteString]
-        
-        let item3 = FeedItem(
+        let item3 = getItem(
             uuid: UUID(),
-            description: nil,
             location: "test3",
             imageURL: URL(string: "https://google.com")!)
-        
-        let item3Dictionary = ["uuid": item3.uuid.uuidString,
-                               "location": item3.location,
-                               "image": item3.imageURL.absoluteString]
-        
-        let item4 = FeedItem(
+
+        let item4 = getItem(
             uuid: UUID(),
             description: "test4",
-            location: nil,
             imageURL: URL(string: "https://google.com")!)
         
-        let item4Dictionary = ["uuid": item4.uuid.uuidString,
-                               "description": item4.description,
-                               "image": item4.imageURL.absoluteString]
+        let data = createItemsJsonData([item1.json, item2.json, item3.json, item4.json])
         
-        let itemsJson = [
-            "items": [item1Dictionary, item2Dictionary, item3Dictionary, item4Dictionary]
-        ]
-        
-        let data = try! JSONSerialization.data(withJSONObject: itemsJson)
-        
-        expext(sut, withResponse: .success([item1, item2, item3, item4])) {
+        expext(sut, withResponse: .success([item1.model, item2.model, item3.model, item4.model])) {
             client.complete(withStatusCode: 200, data: data)
         }
     }
@@ -142,6 +119,27 @@ class FeedTests: XCTestCase {
         
     }
     
+    private func getItem(
+        uuid: UUID,
+        description: String? = nil,
+        location: String? = nil,
+        imageURL: URL) -> (model: FeedItem, json: [String: Any]) {
+            let item = FeedItem(uuid: uuid, description: description, location: location, imageURL: imageURL)
+            let json = [
+                "uuid": uuid.uuidString,
+                "description": description,
+                "location": location,
+                "image": imageURL.absoluteString
+            ].compactMapValues { $0 }
+            
+            return (item, json)
+        }
+    
+    private func createItemsJsonData(_ items: [[String: Any]]) -> Data {
+        let json = ["items": items]
+        return try! JSONSerialization.data(withJSONObject: json)
+    }
+    
     private class HTTPClientSpy: HTTPClient {
         var requestedURLs: [URL] {
             return messages.map { $0.url }
@@ -157,7 +155,7 @@ class FeedTests: XCTestCase {
             messages[index].completion(.failure(error))
         }
         
-        func complete(withStatusCode code: Int, data: Data = Data(), at index: Int = 0) {
+        func complete(withStatusCode code: Int, data: Data, at index: Int = 0) {
             let response = HTTPURLResponse(
                 url: messages[index].url,
                 statusCode: code,
