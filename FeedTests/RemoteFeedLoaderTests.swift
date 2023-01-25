@@ -38,7 +38,7 @@ class FeedTests: XCTestCase {
         let (client, sut) = makeSUT()
         let error = NSError(domain: "", code: 1)
         
-        expext(sut, withResponse: .failure(.connectivity)) {
+        expext(sut, withResponse: failure(.connectivity)) {
             client.complete(with: error)
         }
     }
@@ -48,7 +48,7 @@ class FeedTests: XCTestCase {
         let samples = [199, 201, 300, 400, 500]
         
         samples.enumerated().forEach { index, code in
-            expext(sut, withResponse: .failure(.invalidData)) {
+            expext(sut, withResponse: failure(.invalidData)) {
                 let json = createItemsJsonData([])
                 client.complete(withStatusCode: code, data: json, at: index)
             }
@@ -58,7 +58,7 @@ class FeedTests: XCTestCase {
     func test_load_returnsErrorWithStatusCode200OnInvalidJSON() {
         let (client, sut) = makeSUT()
         
-        expext(sut, withResponse: .failure(.invalidData)) {
+        expext(sut, withResponse: failure(.invalidData)) {
             let data = Data("Test json".utf8)
             client.complete(withStatusCode: 200, data: data)
         }
@@ -103,20 +103,57 @@ class FeedTests: XCTestCase {
         }
     }
     
+    func test_load_completionBlockDoesntCalledWhenObjectIsNil() {
+        let url = URL(string: "https://google.com")!
+        let client = HTTPClientSpy()
+        var sut: RemoteFeedLoader? = RemoteFeedLoader(client: client, url: url)
+        
+        var returnedResponses: [RemoteFeedLoader.Response] = []
+        sut?.load { response in returnedResponses.append(response) }
+
+        sut = nil
+        client.complete(withStatusCode: 200, data: createItemsJsonData([]))
+        
+        XCTAssertTrue(returnedResponses.isEmpty)
+    }
+    
     private func makeSUT(url: URL = URL(string: "https://google.com")!) -> (client: HTTPClientSpy, feedLoader: RemoteFeedLoader) {
         let client = HTTPClientSpy()
         let sut = RemoteFeedLoader(client: client, url: url)
+        checkMemoryLeak(for: sut)
+        checkMemoryLeak(for: client)
         return (client, sut)
     }
     
+    private func checkMemoryLeak(for object: AnyObject) {
+        addTeardownBlock { [weak object] in
+            XCTAssertNil(object)
+        }
+    }
+    
+    private func failure(_ error: RemoteFeedLoader.Error) -> RemoteFeedLoader.Response {
+        return .failure(error)
+    }
+    
     private func expext(_ sut: RemoteFeedLoader, withResponse response: RemoteFeedLoader.Response, action: () -> Void) {
-        var returnedResponses: [RemoteFeedLoader.Response] = []
 
-        sut.load { response in returnedResponses.append(response) }
+        let exp = expectation(description: "wait closure")
+        
+        sut.load { result in
+            switch (result, response) {
+            case (.success(let items), .success(let expectedItems)):
+                XCTAssertEqual(items, expectedItems)
+            case (.failure(let error as RemoteFeedLoader.Error), .failure(let expectedError as RemoteFeedLoader.Error)):
+                XCTAssertEqual(error, expectedError)
+            default:
+                XCTFail()
+            }
+            exp.fulfill()
+        }
+                
         action()
         
-        XCTAssertEqual(returnedResponses, [response])
-        
+        wait(for: [exp], timeout: 1)
     }
     
     private func getItem(
