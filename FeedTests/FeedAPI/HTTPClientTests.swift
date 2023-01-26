@@ -8,10 +8,18 @@
 import XCTest
 import Feed
 
+protocol HTTPSession {
+    func dataTask(with url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> HTTPSessionTask
+}
+
+protocol HTTPSessionTask {
+    func resume()
+}
+
 class URLSessionHTTPClient {
-    private let session: URLSession
+    private let session: HTTPSession
     
-    init(session: URLSession) {
+    init(session: HTTPSession) {
         self.session = session
     }
     
@@ -62,15 +70,15 @@ class HTTPClientTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
     
-    private class URLSessionSpy: URLSession {
+    private class URLSessionSpy: HTTPSession {
         var caputedURLs: [URL] = []
         private var stubs: [URL: Stub] = [:]
-                
-        func stub(_ url: URL, _ dataTask: URLSessionDataTask = URLSessionFakeDataTask(), error: Error? = nil) {
+        
+        func stub(_ url: URL, _ dataTask: HTTPSessionTask = URLSessionDataTaskSpy(), error: Error? = nil) {
             stubs[url] = .init(dataTask: dataTask, error: error)
         }
         
-        override func dataTask(with url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
+        func dataTask(with url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> HTTPSessionTask {
             caputedURLs.append(url)
             guard let stub = stubs[url] else {
                 fatalError("didn't faind stub")
@@ -81,20 +89,15 @@ class HTTPClientTests: XCTestCase {
     }
     
     private struct Stub {
-        let dataTask: URLSessionDataTask
+        let dataTask: HTTPSessionTask
         let error: Error?
     }
     
-    private class URLSessionFakeDataTask: URLSessionDataTask {
-        override func resume() { }
-    }
-    
-    private class URLSessionDataTaskSpy: URLSessionDataTask {
+    private class URLSessionDataTaskSpy: HTTPSessionTask {
         var resumeCalledCount: Int = .zero
         
-        override func resume() {
+        func resume() {
             resumeCalledCount += 1
         }
     }
-    
 }
