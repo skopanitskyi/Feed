@@ -125,12 +125,6 @@ class FeedTests: XCTestCase {
         return (client, sut)
     }
     
-    private func checkMemoryLeak(for object: AnyObject) {
-        addTeardownBlock { [weak object] in
-            XCTAssertNil(object)
-        }
-    }
-    
     private func failure(_ error: RemoteFeedLoader.Error) -> RemoteFeedLoader.Response {
         return .failure(error)
     }
