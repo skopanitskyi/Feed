@@ -157,7 +157,7 @@ class FeedTests: XCTestCase {
         imageURL: URL) -> (model: FeedItem, json: [String: Any]) {
             let item = FeedItem(uuid: uuid, description: description, location: location, imageURL: imageURL)
             let json = [
-                "uuid": uuid.uuidString,
+                "id": uuid.uuidString,
                 "description": description,
                 "location": location,
                 "image": imageURL.absoluteString

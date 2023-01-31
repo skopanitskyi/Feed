@@ -20,13 +20,13 @@ final class FeedItemsMapper {
     }
     
     private struct Item: Decodable {
-        let uuid: UUID
+        let id: UUID
         let description: String?
         let location: String?
         let image: URL
         
         var feedItem: FeedItem {
-            FeedItem(uuid: uuid, description: description, location: location, imageURL: image)
+            FeedItem(uuid: id, description: description, location: location, imageURL: image)
         }
     }
     
