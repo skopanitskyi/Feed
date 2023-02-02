@@ -1,14 +1,14 @@
 //
-//  FeedTests.swift
+//  LoadFeedFromRemoteUseCaseTests.swift
 //  FeedTests
 //
-//  Created by Сергей Копаницкий on 22.01.2023.
+//  Created by Сергей Копаницкий on 02.02.2023.
 //
 
 import XCTest
 import Feed
 
-class FeedTests: XCTestCase {
+class LoadFeedFromRemoteUseCaseTests: XCTestCase {
     
     func test_init_doesntFetchRequest() {
         let (client, _) = makeSUT()
