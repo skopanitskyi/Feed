@@ -149,43 +149,4 @@ class FeedCacheUseCaseTests: XCTestCase {
     private func makeURL() -> URL {
         return URL(string: "https://google.com")!
     }
-    
-    private class FeedStoreSpy: FeedStore {
-        
-        private(set) var receivedMessages: [ReceivedMessages] = []
-        
-        private var capturedDeletionCompletions: [DeletionCompletion] = []
-        private var capturedInsertionCompletions: [InsertionCompletion] = []
-        
-        public enum ReceivedMessages: Equatable {
-            case deleteCacheFeed
-            case insert(feed: [LocalFeedImage], timestamp: Date)
-        }
-        
-        public func deleteCacheFeed(completion: @escaping DeletionCompletion) {
-            receivedMessages.append(.deleteCacheFeed)
-            capturedDeletionCompletions.append(completion)
-        }
-        
-        public func completeDeletion(with error: Error, at index: Int = .zero) {
-            capturedDeletionCompletions[index](error)
-        }
-        
-        public func completeDeletionSuccessfully(at index: Int = .zero) {
-            capturedDeletionCompletions[index](nil)
-        }
-        
-        public func insert(_ feed: [LocalFeedImage], timestamp: Date, completion: @escaping InsertionCompletion) {
-            receivedMessages.append(.insert(feed: feed, timestamp: timestamp))
-            capturedInsertionCompletions.append(completion)
-        }
-        
-        public func completeInsertion(with error: Error, at index: Int = .zero) {
-            capturedInsertionCompletions[index](error)
-        }
-        
-        public func completeInsertionSuccessfully(at index: Int = .zero) {
-            capturedInsertionCompletions[index](nil)
-        }
-    }
 }
