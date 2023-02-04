@@ -12,30 +12,15 @@ final class FeedItemsMapper {
     private static let validStatusCode = 200
     
     private struct FeedItemsJSON: Decodable {
-        let items: [Item]
-        
-        var feedItems: [FeedItem] {
-            return items.map { $0.feedItem }
-        }
+        let items: [RemoteFeedItem]
     }
     
-    private struct Item: Decodable {
-        let id: UUID
-        let description: String?
-        let location: String?
-        let image: URL
-        
-        var feedItem: FeedItem {
-            FeedItem(uuid: id, description: description, location: location, imageURL: image)
-        }
-    }
-    
-    static func map(_ data: Data, _ response: HTTPURLResponse) -> RemoteFeedLoader.Response {
+    static func map(_ data: Data, _ response: HTTPURLResponse) throws -> [RemoteFeedItem]  {
         guard response.statusCode == validStatusCode,
-              let items = try? JSONDecoder().decode(FeedItemsJSON.self, from: data) else {
-                  return .failure(RemoteFeedLoader.Error.invalidData)
+              let json = try? JSONDecoder().decode(FeedItemsJSON.self, from: data) else {
+                  throw RemoteFeedLoader.Error.invalidData
               }
         
-        return .success(items.feedItems)
+        return json.items
     }
 }

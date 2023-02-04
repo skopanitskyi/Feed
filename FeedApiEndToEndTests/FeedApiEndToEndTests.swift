@@ -12,16 +12,16 @@ class FeedApiEndToEndTests: XCTestCase {
 
     func test_endToEndTestServerGETResult_matchesFixedTestAccountData() {
         switch getFeedResult() {
-        case .success(let items):
-            XCTAssertEqual(items.count, 8, "Exptect get 8 fixed items")
-            XCTAssertEqual(items[0], getFeedItem(at: 0))
-            XCTAssertEqual(items[1], getFeedItem(at: 1))
-            XCTAssertEqual(items[2], getFeedItem(at: 2))
-            XCTAssertEqual(items[3], getFeedItem(at: 3))
-            XCTAssertEqual(items[4], getFeedItem(at: 4))
-            XCTAssertEqual(items[5], getFeedItem(at: 5))
-            XCTAssertEqual(items[6], getFeedItem(at: 6))
-            XCTAssertEqual(items[7], getFeedItem(at: 7))
+        case .success(let imageFeed):
+            XCTAssertEqual(imageFeed.count, 8, "Exptect get 8 fixed images")
+            XCTAssertEqual(imageFeed[0], getFeedImage(at: 0))
+            XCTAssertEqual(imageFeed[1], getFeedImage(at: 1))
+            XCTAssertEqual(imageFeed[2], getFeedImage(at: 2))
+            XCTAssertEqual(imageFeed[3], getFeedImage(at: 3))
+            XCTAssertEqual(imageFeed[4], getFeedImage(at: 4))
+            XCTAssertEqual(imageFeed[5], getFeedImage(at: 5))
+            XCTAssertEqual(imageFeed[6], getFeedImage(at: 6))
+            XCTAssertEqual(imageFeed[7], getFeedImage(at: 7))
         case .failure(let error):
             XCTFail("Expect to get success result, but got error = \(error)")
         case .none:
@@ -49,12 +49,12 @@ class FeedApiEndToEndTests: XCTestCase {
         return feedLoaderResponse
     }
     
-    private func getFeedItem(at index: Int) -> FeedItem {
-        return FeedItem(
+    private func getFeedImage(at index: Int) -> FeedImage {
+        return FeedImage(
             uuid: getUUID(at: index),
             description: getDescription(at: index),
             location: getLocation(at: index),
-            imageURL: getImageURL(at: index))
+            url: getImageURL(at: index))
     }
     
     private func getUUID(at index: Int) -> UUID {
