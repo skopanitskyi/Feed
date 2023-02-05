@@ -18,7 +18,7 @@ class LoadFeedFromCacheUseCaseTests: XCTestCase {
     func test_load_requestsCacheRetrivel() {
         let (sut, store) = makeSUT()
         
-        sut.retrive()
+        sut.load { _ in }
         
         XCTAssertEqual(store.receivedMessages, [.retrive])
     }
@@ -44,10 +44,10 @@ class LoadFeedFromCacheUseCaseTests: XCTestCase {
         let currentDate = Date()
         let lessThenSevenDaysTimestamp = currentDate.adding(days: -7).adding(second: 1)
         let (sut, store) = makeSUT { return currentDate }
-        let feed = makeFeed()
+        let feed = createImageFeed()
         
-        expact(sut, with: .success([feed.feed])) {
-            store.completeRetriveCache([feed.localFeed], timestamp: lessThenSevenDaysTimestamp)
+        expact(sut, with: .success(feed.items)) {
+            store.completeRetriveCache(feed.localFeed, timestamp: lessThenSevenDaysTimestamp)
         }
     }
     
@@ -55,10 +55,10 @@ class LoadFeedFromCacheUseCaseTests: XCTestCase {
         let currentDate = Date()
         let sevenDaysTimestamp = currentDate.adding(days: -7)
         let (sut, store) = makeSUT { return currentDate }
-        let feed = makeFeed()
+        let feed = createImageFeed()
         
         expact(sut, with: .success([])) {
-            store.completeRetriveCache([feed.localFeed], timestamp: sevenDaysTimestamp)
+            store.completeRetriveCache(feed.localFeed, timestamp: sevenDaysTimestamp)
         }
     }
     
@@ -66,11 +66,85 @@ class LoadFeedFromCacheUseCaseTests: XCTestCase {
         let currentDate = Date()
         let moreThenSevenDaysTimestamp = currentDate.adding(days: -10)
         let (sut, store) = makeSUT { return currentDate }
-        let feed = makeFeed()
+        let feed = createImageFeed()
         
         expact(sut, with: .success([])) {
-            store.completeRetriveCache([feed.localFeed], timestamp: moreThenSevenDaysTimestamp)
+            store.completeRetriveCache(feed.localFeed, timestamp: moreThenSevenDaysTimestamp)
         }
+    }
+    
+    func test_load_hasNoSideEffectOnRetrivelError() {
+        let (sut, store) = makeSUT()
+        
+        sut.load { _ in }
+        
+        store.completeRetrival(with: anyNSError())
+        
+        XCTAssertEqual(store.receivedMessages, [.retrive])
+    }
+    
+    func test_load_hasNoSideEffectsOnEmptyCache() {
+        let (sut, store) = makeSUT()
+        
+        sut.load { _ in }
+        
+        store.completeRetriveEmptyCache()
+        
+        XCTAssertEqual(store.receivedMessages, [.retrive])
+    }
+    
+    func test_load_hasNoSideEffectsOnLessThenSevenDaysOldTimestamp() {
+        let currentDate = Date()
+        let lessThenSevenDaysTimestamp = currentDate.adding(days: -7).adding(second: 1)
+        let (sut, store) = makeSUT { return currentDate }
+        let feed = createImageFeed()
+        
+        sut.load { _ in }
+        
+        store.completeRetriveCache(feed.localFeed, timestamp: lessThenSevenDaysTimestamp)
+
+        XCTAssertEqual(store.receivedMessages, [.retrive])
+    }
+    
+    func test_load_hasNoSideEffectOnSevenDaysOldCache() {
+        let currentDate = Date()
+        let sevenDaysTimestamp = currentDate.adding(days: -7)
+        let (sut, store) = makeSUT { return currentDate }
+        let feed = createImageFeed()
+        
+        sut.load { _ in }
+        
+        store.completeRetriveCache(feed.localFeed, timestamp: sevenDaysTimestamp)
+
+        XCTAssertEqual(store.receivedMessages, [.retrive])
+    }
+    
+    func test_load_hasNoSideEffectOnMoreThenSevenDaysOldCache() {
+        let currentDate = Date()
+        let moreThenSevenDaysTimestamp = currentDate.adding(days: -7).adding(second: -1)
+        let (sut, store) = makeSUT { return currentDate }
+        let feed = createImageFeed()
+        
+        sut.load { _ in }
+        
+        store.completeRetriveCache(feed.localFeed, timestamp: moreThenSevenDaysTimestamp)
+
+        XCTAssertEqual(store.receivedMessages, [.retrive])
+    }
+    
+    func test_load_doesNotDeliversResultAfterSUTInstanceHasBeenDeallocated() {
+        let store = FeedStoreSpy()
+        var sut: LocalFeedLoader? = LocalFeedLoader(store: store, currnentDate: Date.init)
+        var retriveResult: LocalFeedLoader.RetriveResult?
+        
+        sut?.load { result in
+            retriveResult = result
+        }
+        
+        sut = nil
+        store.completeRetriveEmptyCache()
+        
+        XCTAssertNil(retriveResult)
     }
     
     // MARK: - Private methods
@@ -83,16 +157,10 @@ class LoadFeedFromCacheUseCaseTests: XCTestCase {
         return (sut, store)
     }
     
-    private func makeFeed() -> (feed: FeedImage, localFeed: LocalFeedImage) {
-        let feed = FeedImage(uuid: UUID(), description: "test", location: "111", url: makeURL())
-        let localFeed = LocalFeedImage(uuid: feed.uuid, description: feed.description, location: feed.location, url: feed.url)
-        return (feed, localFeed)
-    }
-    
     private func expact(_ sut: LocalFeedLoader, with expectedResult: LocalFeedLoader.RetriveResult, action: (() -> Void)) {
         let ext = expectation(description: "wait for closure call")
         
-        sut.retrive { result in
+        sut.load { result in
             switch (result, expectedResult) {
             case (.success(let resultFeed), .success(let expectedFeed)):
                 XCTAssertEqual(resultFeed, expectedFeed)
@@ -108,23 +176,5 @@ class LoadFeedFromCacheUseCaseTests: XCTestCase {
         action()
         
         wait(for: [ext], timeout: 1)
-    }
-    
-    private func anyNSError() -> NSError {
-        return NSError(domain: "any error", code: 1000, userInfo: nil)
-    }
-    
-    private func makeURL() -> URL {
-        return URL(string: "https://google.com")!
-    }
-}
-
-private extension Date {
-    func adding(days: Int) -> Date {
-        return Calendar.current.date(byAdding: .day, value: days, to: self)!
-    }
-    
-    func adding(second: Int) -> Date {
-        return Calendar.current.date(byAdding: .second, value: second, to: self)!
     }
 }

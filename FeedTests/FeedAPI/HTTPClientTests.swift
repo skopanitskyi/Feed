@@ -83,17 +83,9 @@ class HTTPClientTests: XCTestCase {
         checkMemoryLeak(for: sut)
         return sut
     }
-    
-    private func makeURL() -> URL {
-        return URL(string: "https://google.com")!
-    }
-    
+
     private func anyData() -> Data {
         return Data("any data".utf8)
-    }
-    
-    private func anyNSError() -> NSError {
-        return NSError(domain: "any error", code: 1000, userInfo: nil)
     }
     
     private func anyURLResponse() -> URLResponse {
