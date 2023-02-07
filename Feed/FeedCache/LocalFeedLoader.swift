@@ -10,22 +10,13 @@ import Foundation
 public final class LocalFeedLoader: FeedLoader {
     private let store: FeedStore
     private let currnentDate: () -> Date
-    private let maxCacheAgeInDays = 7
-        
+    
     public init(store: FeedStore, currnentDate: @escaping () -> Date) {
         self.store = store
         self.currnentDate = currnentDate
     }
-    
-    private func validate(_ timestamp: Date) -> Bool {
-        guard let maxCacheAge = Calendar.current.date(byAdding: .day, value: maxCacheAgeInDays, to: timestamp) else {
-            return false
-        }
-        
-        return currnentDate() < maxCacheAge
-    }
 }
- 
+
 extension LocalFeedLoader {
     public typealias SaveResult = Error?
     
@@ -48,16 +39,16 @@ extension LocalFeedLoader {
         }
     }
 }
-    
+
 extension LocalFeedLoader {
     public typealias RetriveResult = FeedLoaderResponse
-
+    
     public func load(completion: @escaping (RetriveResult) -> Void) {
         store.retrive { [weak self] result in
             guard let self = self else { return }
             
             switch result {
-            case .found(let feed, let timestamp) where self.validate(timestamp):
+            case .found(let feed, let timestamp) where FeedCachePolicy.validate(timestamp, against: self.currnentDate()):
                 completion(.success(feed.toModels()))
             case .empty, .found:
                 completion(.success([]))
@@ -76,7 +67,7 @@ extension LocalFeedLoader {
             switch result {
             case .failure:
                 self.store.deleteCacheFeed { _ in }
-            case .found(_, let timestamp) where !self.validate(timestamp):
+            case .found(_, let timestamp) where !FeedCachePolicy.validate(timestamp, against: self.currnentDate()):
                 self.store.deleteCacheFeed { _ in }
             case .empty, .found:
                 break

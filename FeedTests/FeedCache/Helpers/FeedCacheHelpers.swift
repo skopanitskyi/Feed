@@ -25,10 +25,20 @@ func createImageFeed() -> (items: [FeedImage], localFeed: [LocalFeedImage]) {
 }
 
 extension Date {
-    func adding(days: Int) -> Date {
-        return Calendar.current.date(byAdding: .day, value: days, to: self)!
+    private var feedCacheMaxAgeInDays: Int {
+        return 7
     }
     
+    func minusFeedCacheMaxAge() -> Date {
+        return adding(days: -feedCacheMaxAgeInDays)
+    }
+    
+    private func adding(days: Int) -> Date {
+        return Calendar.current.date(byAdding: .day, value: days, to: self)!
+    }
+}
+
+extension Date {
     func adding(second: Int) -> Date {
         return Calendar.current.date(byAdding: .second, value: second, to: self)!
     }
