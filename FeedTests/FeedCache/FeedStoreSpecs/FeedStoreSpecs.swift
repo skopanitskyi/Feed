@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 protocol FeedStoreSpecs {
     func test_retrieve_deliversEmptyOnEmptyCash()
     func test_retrieve_twiceCallDeliversEmptyOnEmptyCash()
