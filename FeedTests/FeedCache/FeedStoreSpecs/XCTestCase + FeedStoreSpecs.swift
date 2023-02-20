@@ -12,9 +12,16 @@ extension FeedStoreSpecs where Self: XCTestCase {
     func insert(_ feed: [LocalFeedImage], timestamp: Date, sut: FeedStore, expectedError: NSError?) {
         let exp = expectation(description: "Wait for completion response")
         
-        sut.insert(feed, timestamp: timestamp) { error in
-            if let expectedError = expectedError, error == nil {
-                XCTFail("Expect to get error = \(expectedError), but got nil")
+        sut.insert(feed, timestamp: timestamp) { result in
+            switch (result, expectedError) {
+            case (.success, let .some(error)):
+                XCTFail("Expect to get error = \(error), but got success")
+            case (.failure(_), .some(_)):
+                break
+            case (.failure(let error), .none):
+                XCTFail("Expect to get no error, but got \(error)")
+            default:
+                break
             }
             exp.fulfill()
         }
@@ -22,15 +29,15 @@ extension FeedStoreSpecs where Self: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
     
-    func expact(_ sut: FeedStore, retriveResult: RetriveCachedFeedResult) {
+    func expact(_ sut: FeedStore, retriveResult: FeedStore.RetriveResult) {
         let ext = expectation(description: "Wait for response")
         
         sut.retrive { result in
             switch (result, retriveResult) {
-            case let (.found(retriveFeed, retriveTimestamp), .found(expectedFeed, expectedTimestamp)):
-                XCTAssertEqual(retriveFeed, expectedFeed)
-                XCTAssertEqual(retriveTimestamp, expectedTimestamp)
-            case (.empty, .empty):
+            case let (.success(.some(retriveCache)), .success(.some(expextedCache))):
+                XCTAssertEqual(retriveCache.feed, expextedCache.feed)
+                XCTAssertEqual(retriveCache.timestamp, expextedCache.timestamp)
+            case (.success(.none), .success(.none)):
                 break
             case (.failure, .failure):
                 break
@@ -48,8 +55,13 @@ extension FeedStoreSpecs where Self: XCTestCase {
         let exp = expectation(description: "Wait for completion")
         var capturedError: Error?
         
-        sut.deleteCacheFeed { error in
-            capturedError = error
+        sut.deleteCacheFeed { result in
+            switch result {
+            case .success:
+                break
+            case .failure(let error):
+                capturedError = error
+            }
             exp.fulfill()
         }
         
@@ -59,12 +71,12 @@ extension FeedStoreSpecs where Self: XCTestCase {
     }
     
     func assertThatRetrieveDeliversEmptyOnEmptyCash(sut: FeedStore) {
-        expact(sut, retriveResult: .empty)
+        expact(sut, retriveResult: .success(.none))
     }
     
     func assertThatRetrieveTwiceCallDeliversEmptyOnEmptyCash(sut: FeedStore) {
-        expact(sut, retriveResult: .empty)
-        expact(sut, retriveResult: .empty)
+        expact(sut, retriveResult: .success(.none))
+        expact(sut, retriveResult: .success(.none))
     }
     
     func assertThatRetrieveAfterInsertingToEmptyCashDeliversInsertedValues(sut: FeedStore) {
@@ -73,7 +85,7 @@ extension FeedStoreSpecs where Self: XCTestCase {
         
         insert(feed, timestamp: timestamp, sut: sut, expectedError: nil)
         
-        expact(sut, retriveResult: .found(feed: feed, timestamp: timestamp))
+        expact(sut, retriveResult: .success(.init(feed: feed, timestamp: timestamp)))
     }
     
     func assertThatRetrieveHasNoSideEffectsOnNonEmptyCache(sut: FeedStore) {
@@ -82,8 +94,8 @@ extension FeedStoreSpecs where Self: XCTestCase {
         
         insert(feed, timestamp: timestamp, sut: sut, expectedError: nil)
         
-        expact(sut, retriveResult: .found(feed: feed, timestamp: timestamp))
-        expact(sut, retriveResult: .found(feed: feed, timestamp: timestamp))
+        expact(sut, retriveResult: .success(.init(feed: feed, timestamp: timestamp)))
+        expact(sut, retriveResult: .success(.init(feed: feed, timestamp: timestamp)))
     }
     
     func assertThatInsertDeliversNewInsertedValueOnNonEmptyCache(sut: FeedStore) {
@@ -93,14 +105,14 @@ extension FeedStoreSpecs where Self: XCTestCase {
         insert([createImageFeed().localFeed[.zero]], timestamp: Date(), sut: sut, expectedError: nil)
         insert(feed, timestamp: timestamp, sut: sut, expectedError: nil)
         
-        expact(sut, retriveResult: .found(feed: feed, timestamp: timestamp))
+        expact(sut, retriveResult: .success(.init(feed: feed, timestamp: timestamp)))
     }
     
     func assertThatDeleteDeleteOnEmptyCacheHasNoSideEffects(sut: FeedStore) {
         let deletingError = delete(from: sut)
         XCTAssertNil(deletingError, "Expect no errors on deletion empty cache")
         
-        expact(sut, retriveResult: .empty)
+        expact(sut, retriveResult: .success(.none))
     }
     
     func assertThatDeleteDeletePrivioslyInsetredValues(sut: FeedStore) {
@@ -109,7 +121,7 @@ extension FeedStoreSpecs where Self: XCTestCase {
         let deletingError = delete(from: sut)
         XCTAssertNil(deletingError, "Expect no errors on deletion cache")
         
-        expact(sut, retriveResult: .empty)
+        expact(sut, retriveResult: .success(.none))
     }
     
     func assertThatStoreSideEffectsRunSerially(sut: FeedStore) {

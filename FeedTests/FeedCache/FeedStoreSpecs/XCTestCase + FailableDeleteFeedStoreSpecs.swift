@@ -16,6 +16,6 @@ extension FailableDeleteFeedStoreSpecs where Self: XCTestCase {
     
     func assertThatDeleteFailureDeletingHasNoSideEffects(sut: FeedStore) {
         delete(from: sut)
-        expact(sut, retriveResult: .empty)
+        expact(sut, retriveResult: .success(.none))
     }
 }

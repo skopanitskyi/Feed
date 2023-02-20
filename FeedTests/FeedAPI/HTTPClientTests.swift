@@ -112,7 +112,7 @@ class HTTPClientTests: XCTestCase {
         let result = resultFor(for: data, response: response, error: error)
         
         switch result {
-        case .success(let data, let response):
+        case .success((let data, let response)):
             return (data, response)
         case .failure:
             XCTFail("Exptect to get value")
@@ -120,10 +120,10 @@ class HTTPClientTests: XCTestCase {
         }
     }
     
-    private func resultFor(for data: Data?, response: URLResponse?, error: Error?) -> HTTPClientResponse {
+    private func resultFor(for data: Data?, response: URLResponse?, error: Error?) -> HTTPClient.Response {
         let exp = expectation(description: "wait call completion")
         URLSessionStub.stub(data: data, response: response, error: error)
-        var capturedResult: HTTPClientResponse!
+        var capturedResult: HTTPClient.Response!
         
         makeSUT().get(from: makeURL()) { result in
             capturedResult = result

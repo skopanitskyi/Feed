@@ -18,23 +18,17 @@ final public class CoreDataFeedStore: FeedStore {
     
     public func deleteCacheFeed(completion: @escaping DeletionCompletion) {
         context.performAndWait {
-            do {
+            completion(Result {
                 try ManagedFeed.deleteAll(context)
-                completion(nil)
-            } catch {
-                completion(error)
-            }
+            })
         }
     }
     
     public func insert(_ feed: [LocalFeedImage], timestamp: Date, completion: @escaping InsertionCompletion) {
         context.performAndWait {
-            do {
+            completion(Result {
                 try ManagedFeed.save(feed, timestamp: timestamp, in: context)
-                completion(nil)
-            } catch {
-                completion(error)
-            }
+            })
         }
     }
     
@@ -42,15 +36,11 @@ final public class CoreDataFeedStore: FeedStore {
         let context = self.context
         
         context.perform {
-            do {
-                if let feedCache = try ManagedFeed.fetchFeed(context) {
-                    completion(.found(feed: feedCache.feed, timestamp: feedCache.timestamp))
-                } else {
-                    completion(.empty)
+            completion(Result {
+                try ManagedFeed.fetchFeed(context).map { feedCache in
+                    return CachedFeed(feed: feedCache.feed, timestamp: feedCache.timestamp)
                 }
-            } catch {
-                completion(.failure(error))
-            }
+            })
         }
     }
 }

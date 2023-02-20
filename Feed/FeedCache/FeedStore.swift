@@ -7,16 +7,24 @@
 
 import Foundation
 
-public enum RetriveCachedFeedResult {
-    case failure(Error)
-    case empty
-    case found(feed: [LocalFeedImage], timestamp: Date)
+
+public struct CachedFeed {
+    public let feed: [LocalFeedImage]
+    public let timestamp: Date
+    
+    public init(feed: [LocalFeedImage], timestamp: Date) {
+        self.feed = feed
+        self.timestamp = timestamp
+    }
 }
 
 public protocol FeedStore {
-    typealias DeletionCompletion = ((Error?) -> Void)
-    typealias InsertionCompletion = ((Error?) -> Void)
-    typealias RetriveCompletion = ((RetriveCachedFeedResult) -> Void)
+    typealias DeletionResult = Result<Void, Error>
+    typealias InsertionResult = Result<Void, Error>
+    typealias RetriveResult = Result<CachedFeed?, Error>
+    typealias DeletionCompletion = ((DeletionResult) -> Void)
+    typealias InsertionCompletion = ((InsertionResult) -> Void)
+    typealias RetriveCompletion = ((RetriveResult) -> Void)
     
     func deleteCacheFeed(completion: @escaping DeletionCompletion)
     func insert(_ feed: [LocalFeedImage], timestamp: Date, completion: @escaping InsertionCompletion)
