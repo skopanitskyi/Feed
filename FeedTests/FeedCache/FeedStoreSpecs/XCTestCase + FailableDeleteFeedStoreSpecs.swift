@@ -9,12 +9,12 @@ import XCTest
 import Feed
 
 extension FailableDeleteFeedStoreSpecs where Self: XCTestCase {
-    func assertThatDeleteDeliversErrorOnDeletionError(sut: FeedStore) {
+    func assertThatDeleteDeliversErrorOnDeletionError(sut: FeedStore, file: StaticString = #filePath, line: UInt = #line) {
         let deletionError = delete(from: sut)
         XCTAssertNotNil(deletionError, "Expect to get error on deletion invalid data url, but got nil")
     }
     
-    func assertThatDeleteFailureDeletingHasNoSideEffects(sut: FeedStore) {
+    func assertThatDeleteFailureDeletingHasNoSideEffects(sut: FeedStore, file: StaticString = #filePath, line: UInt = #line) {
         delete(from: sut)
         expact(sut, retriveResult: .success(.none))
     }
