@@ -8,53 +8,42 @@
 import UIKit
 import Feed
 
-public protocol FeedImageDataLoaderTask {
-    func cancel()
-}
-
-public protocol FeedImageDataLoader {
-    func loadImage(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) -> FeedImageDataLoaderTask
-}
-
 public final class FeedViewController: UITableViewController {
     
-    private var feedLoader: FeedLoader?
+    private var feedRefreshController: FeedRefreshController?
     private var imageLoader: FeedImageDataLoader?
     
-    private var tableModels: [FeedImage] = []
+    private var tableModels: [FeedImage] = [] {
+        didSet {
+            tableView.reloadData()
+        }
+    }
     private var imageLoadingTasks: [IndexPath: FeedImageDataLoaderTask] = [:]
     
     public convenience init(feedLoader: FeedLoader, imageLoader: FeedImageDataLoader) {
         self.init()
-        self.feedLoader = feedLoader
+        self.feedRefreshController = FeedRefreshController(feedLoader: feedLoader)
         self.imageLoader = imageLoader
     }
     
     override public func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(FeedImageCell.self, forCellReuseIdentifier: String(describing: FeedImageCell.self))
-        refreshControl = UIRefreshControl()
-        refreshControl?.addTarget(self, action: #selector(loadFeed), for: .valueChanged)
+
         tableView.prefetchDataSource = self
-        loadFeed()
+        
+        tableView.refreshControl = feedRefreshController?.refreshControl
+        
+        feedRefreshController?.onLoad = { [weak self] feed in
+            self?.tableModels = feed
+        }
+        
+        feedRefreshController?.refresh()
     }
     
     private func cancelTask(forRowAt indexPath: IndexPath) {
         imageLoadingTasks[indexPath]?.cancel()
         imageLoadingTasks[indexPath] = nil
-    }
-    
-    @objc
-    private func loadFeed() {
-        refreshControl?.beginRefreshing()
-        
-        feedLoader?.load { [weak self] result in
-            if let feeds = try? result.get() {
-                self?.tableModels = feeds
-            }
-            self?.refreshControl?.endRefreshing()
-            self?.tableView.reloadData()
-        }
     }
 }
 
